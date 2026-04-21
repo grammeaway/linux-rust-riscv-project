@@ -103,3 +103,38 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 [    0.758858] rust_minimal: Am I built-in? true
 [    0.759365] rust_minimal: test_parameter: 1
 ``` 
+
+
+# Step 9: My own Rust kernel module
+
+- Switch the Rust sample code in the menuconfig from the minimal built-in module, to a loadable module, and then rebuild the kernel with the same command as before
+
+    - Double-check that "Enable Loadable Module Support" is enabled in the menuconfig, since it's required for loadable modules to work - should be a default option, can be seen on the very first page of the menuconfig
+
+- After building, you should see a new .ko file in the same directory as the minimal module's .ko file - this is your Rust kernel module, which you can load using insmod and unload using rmmod, just like any other kernel module. You can also check the kernel logs again to see the output from your Rust module when it's loaded and unloaded.
+
+
+- Copy the .ko file into your rootfs (at /lib/modules/), and re-make the initramfs image, so that it's included in the initramfs when you boot the kernel in QEMU. 
+
+
+- Boot into the kernel in QEMU, and run: `insmod /lib/modules/rust_minimal.ko`. This should produce the output:
+
+```bash 
+~ # insmod /lib/modules/rust_minimal.ko
+[    9.609871] rust_minimal: Rust minimal sample (init)
+[    9.611867] rust_minimal: Am I built-in? false
+[    9.613910] rust_minimal: test_parameter: 1 
+
+```
+
+    - You can pass parameters to the module when you load it with insmod, which can be useful for testing that parameter parsing is working correctly in your Rust code. For example, you could run `insmod /lib/modules/rust_minimal.ko test_parameter=42` to set the test_parameter to 42 instead of the default value of 1, and then check the kernel logs again to see that the new value is being used in the output from your module.
+
+- Following the succesful load with `insmod`, you can then run `rmmod rust_minimal` to unload the module, which should produce the output:
+
+```bash
+~ # rmmod rust_minimal
+[   89.664436] rust_minimal: My numbers are [72, 108, 200]
+[   89.667130] rust_minimal: Rust minimal sample (exit)
+```
+
+- And just like that, you have a Rust kernel development environment and loop running.

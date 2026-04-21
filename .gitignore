@@ -2,3 +2,5 @@
 busybox
 # Ignore our rootfs images
 *.cpio.gz 
+# Ignore our compiled kernel modules
+*.ko
