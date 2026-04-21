@@ -20,7 +20,7 @@ Working from: Arch Linux, x86_64
 
     - Save and exit immediately, since the default config is fine for our purposes
 
-    - run `ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- make` to build the kernel
+    - run `ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- make -j$(nproc)` to build the kernel (the -j flag is optional but speeds up the build by using multiple cores)
 
         - had to install bc for this to work - you might have other missing deps, install as needed
 
@@ -81,4 +81,25 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 - See new reference repository
 
 
-Created: 2026-04-19 18:29:48
+# Step 6: Rust for Linux toolchain
+- Use the Linux kernel scripts and tools, to check your system and environment for whether it's ready for building Rust code for the kernel, and if not, what you need to do to get it ready.
+
+- In my case, installed rust-source and rust-bindgen from pacman, and then added the rust-src component to my Rust toolchain using rustup
+
+# Step 7: configmenu confs for Rust for Linux
+
+- Enable Rust Support in the general setup section, in the menuconfig for the kernel
+
+- In the Kernel hacking section, enable sample kernel code, and in the subsequent menu for that, enable the Rust sample code. You'll have multiple options for the Rust sample code. For a start, I just went with "Minimal" (a hello world module), configured as a built-in module, since it's the simplest to get up and running.
+
+- Save and exit, and then rebuild using: `ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- LLVM=1 make -j$(nproc)` - the LLVM=1 flag is needed to enable the use of the Rust toolchain for building the Rust code in the kernel, since it relies on LLVM for codegen. Without the LLVM flag, I got prompted for a lot of additional configuration options related to the Rust code in the kernel
+
+
+# Step 8: Verify Rust code is running in the kernel
+
+- Boot into the kernel in QEMU, and check the kernel logs: `dmesg | grep -i rust` - you should see something like:
+```bash
+[    0.758339] rust_minimal: Rust minimal sample (init)
+[    0.758858] rust_minimal: Am I built-in? true
+[    0.759365] rust_minimal: test_parameter: 1
+``` 
