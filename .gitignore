@@ -1,0 +1,4 @@
+# Ignore the busybox binary
+busybox
+# Ignore our rootfs images
+*.cpio.gz 
