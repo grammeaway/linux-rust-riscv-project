@@ -1,5 +1,13 @@
 # RISC-V cross-compiled Linux kernel project 
 
+
+Setup requirements:
+
+- RISC-V compiled busybox binary in `rootfs/bin/busybox`
+- RISC-V compiled Linux kernel in `linux/arch/riscv/boot/Image` (or whatever path you have built it to)
+- `initramfs.cpio.gz` generated from the `rootfs` directory
+
+
 QEMU run command:
 ```bash
 qemu-system-riscv64 \
