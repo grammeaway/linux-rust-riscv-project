@@ -2,7 +2,7 @@
 
 Working from: Arch Linux, x86_64
 
-# Step 1: Cross-compilations tools 
+## Step 1: Cross-compilations tools 
 
 - riscv64-linux-gnu-gcc - installed through pacman (extra)
 
@@ -10,7 +10,7 @@ Working from: Arch Linux, x86_64
 
 - qemu-base and qemu-system-riscv - pacman (extra)
 
-# Step 2: A Linux kernel
+## Step 2: A Linux kernel
 
 - Download from GitHub, limit fetch depth to 1, go for whichever tag is the latest stable - runnning v7.0 in my case 
 
@@ -26,7 +26,7 @@ Working from: Arch Linux, x86_64
 
     - Pretty giddy about building a kernel for the first time.
 
-# Step 3: busybox
+## Step 3: busybox
 
 - Download BusyBox source code - busybox.net, running v1.37.0
 
@@ -65,7 +65,7 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 
 
 
-# Step 4: Create a root filesystem
+## Step 4: Create a root filesystem
 
 - Create a directory to hold the root filesystem, and copy the busybox binary into it, along with any necessary libraries (use ldd to find out which ones you need)
 
@@ -76,17 +76,17 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 - Pack the root filesystem into an initramfs image using cpio, and gzip it to create an initramfs.gz file
 
 
-# Step 5: Booting with QEMU
+## Step 5: Booting with QEMU
 
-- See new reference repository
+- See README
 
 
-# Step 6: Rust for Linux toolchain
+## Step 6: Rust for Linux toolchain
 - Use the Linux kernel scripts and tools, to check your system and environment for whether it's ready for building Rust code for the kernel, and if not, what you need to do to get it ready.
 
 - In my case, installed rust-source and rust-bindgen from pacman, and then added the rust-src component to my Rust toolchain using rustup
 
-# Step 7: configmenu confs for Rust for Linux
+## Step 7: configmenu confs for Rust for Linux
 
 - Enable Rust Support in the general setup section, in the menuconfig for the kernel
 
@@ -95,7 +95,7 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 - Save and exit, and then rebuild using: `ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- LLVM=1 make -j$(nproc)` - the LLVM=1 flag is needed to enable the use of the Rust toolchain for building the Rust code in the kernel, since it relies on LLVM for codegen. Without the LLVM flag, I got prompted for a lot of additional configuration options related to the Rust code in the kernel
 
 
-# Step 8: Verify Rust code is running in the kernel
+## Step 8: Verify Rust code is running in the kernel
 
 - Boot into the kernel in QEMU, and check the kernel logs: `dmesg | grep -i rust` - you should see something like:
 ```bash
@@ -105,7 +105,7 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 ``` 
 
 
-# Step 9: My own Rust kernel module
+## Step 9: A simple Rust kernel module
 
 - Switch the Rust sample code in the menuconfig from the minimal built-in module, to a loadable module, and then rebuild the kernel with the same command as before
 
@@ -138,3 +138,40 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 ```
 
 - And just like that, you have a Rust kernel development environment and loop running.
+
+
+## Step 10: Tinkering with the Rust code 
+
+- Open the rust_minimal.rs file in the kernel source tree, and make some changes to the code 
+
+- I added a new pr_info macro, a new test parameter, a pr_info printing said parameter, modified the Vector of numbers that gets printed when the module is unloaded
+
+- For something with a bit more meat on it, I added a pr_info outputting the number of CPU IDs, the current CPU ID, a small time delta measurement, and the current jiffies value
+
+    - All of these involved poking around in the Rust kernel modules, and playing around with their APIs and data structures
+
+- After making changes, rebuild the kernel again with the same command as before, copy the new .ko file into your rootfs, remake the initramfs, and then boot into the kernel in QEMU to see your changes in action when you load and unload the module with insmod and rmmod. 
+
+
+- My output after the changes looked like this:
+
+```bash
+~ # insmod /lib/modules/rust_minimal.ko 
+[   32.465710] rust_minimal: Rust minimal sample (init)
+[   32.467403] rust_minimal: Am I built-in? false
+[   32.469608] rust_minimal: A new pr_info! macro with 42 and hello
+[   32.472496] rust_minimal: test_parameter: 1
+[   32.474030] rust_minimal: test_parameter_two: 2
+[   32.475053] rust_minimal: measured delta: 25000 ns
+[   32.476094] rust_minimal: nr_cpu_ids: 2
+[   32.477645] rust_minimal: Current CPU ID: 0
+[   32.478467] rust_minimal: jiffies = 4294900408
+```
+
+```bash
+~ # rmmod rust_minimal
+[  190.817228] rust_minimal: My numbers are [42, 120, 256]
+[  190.819226] rust_minimal: Rust minimal sample (exit)
+```
+
+- Noting that the drop output matched the new Vector of numbers
