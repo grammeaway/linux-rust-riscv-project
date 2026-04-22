@@ -193,3 +193,5 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 - Modified the system to have a top-level Makefile, which builds all the out-of-tree Rust modules, and rebuilds the initramfs, to make the build process a bit smoother
 
 - Made a simple module, using Rust's asm! macro to read some RISC-V CSRs (cycle, time, instret), and print their values in the kernel logs when the module is loaded.
+
+- Rewrote to using a macro for CSR reading, rather than previous 3 functions with inline assembly, which made the code a lot cleaner and more reusable. Kept arch-guarding the use of the macro, since it's only relevant for RISC-V and wouldn't work on other architectures

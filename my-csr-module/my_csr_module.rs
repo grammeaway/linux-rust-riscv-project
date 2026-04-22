@@ -17,35 +17,22 @@ module! {
 struct MyCSRModule {
 }
 
-
+ // Not 100% necessary, since the macro is only used in an already 
+// arch-guarded block, but good to be safe.
 #[cfg(target_arch = "riscv64")]
-fn read_time_csr() -> u64 {
-    let value: u64;
-    // SAFETY: reading the `time` CSR has no side effects.
-    unsafe {
-        asm!("csrr {0}, time", out(reg) value);
-    }
-    value
+macro_rules! read_csr { 
+    ($csr:ident) => {{ 
+        let value: u64;
+        // SAFETY: reading a CSR is a pure read with no side effects
+        unsafe { 
+            asm!(
+                concat!("csrr {0}, ", stringify!($csr)),
+                out(reg) value 
+            );
+        }
+        value
+    }};
 }
-
-#[cfg(target_arch = "riscv64")]
-fn read_cycle_csr() -> u64 {
-    let value: u64;
-    unsafe {
-        asm!("csrr {0}, cycle", out(reg) value);
-    }
-    value
-}
-
-#[cfg(target_arch = "riscv64")]
-fn read_instret_csr() -> u64 {
-    let value: u64;
-    unsafe {
-        asm!("csrr {0}, instret", out(reg) value);
-    }
-    value
-}
-
 
 impl kernel::Module for MyCSRModule {
     fn init(_module: &'static ThisModule) -> Result<Self> {
@@ -56,27 +43,27 @@ impl kernel::Module for MyCSRModule {
         #[cfg(target_arch = "riscv64")]
         {
             // Initial simple reads
-            let time = read_time_csr();
+            let time = read_csr!(time);
             pr_info!("RISC-V time CSR: {}\n", time);
-            let cycle = read_cycle_csr();
+            let cycle = read_csr!(cycle);
             pr_info!("RISC-V cycle CSR: {}\n", cycle);
-            let instret = read_instret_csr();
+            let instret = read_csr!(instret);
             pr_info!("RISC-V instret CSR: {}\n", instret);
 
             // Simple "benchmark" to show the difference in cycle and instret counts before and
             // after a loop.
-            //let cycle_start = read_cycle_csr();
-            let t_start = read_time_csr();
-            let instret_start = read_instret_csr();
+            //let cycle_start = read_csr!(cycle);
+            let t_start = read_csr!(time);
+            let instret_start = read_csr!(instret);
             
             let mut sum: u64 = 0;
             for i in 0..10_000_000u64 {
                 sum = sum.wrapping_add(black_box(i));
                 unsafe { asm!("", options(nostack, preserves_flags)); }
             }
-            let t_end = read_time_csr();
-            //let cycle_end = read_cycle_csr();
-            let instret_end = read_instret_csr();
+            let t_end = read_csr!(time);
+            //let cycle_end = read_csr!(cycle);
+            let instret_end = read_csr!(instret);
             
             pr_info!("loop anti-DCE sum: {}\n", black_box(sum)); // Prevent the loop from being optimized away.
             //pr_info!("cycle delta: {}\n", cycle_end - cycle_start);
