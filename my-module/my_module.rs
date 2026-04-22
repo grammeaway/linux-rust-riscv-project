@@ -1,3 +1,6 @@
+// Adapted from the Rust-for-Linux rust_minimal.rs sample, from the Linux kernel's samples/rust
+// directory. All rights reserved to the original authors. Used here for demonstration purposes
+// only.
 // SPDX-License-Identifier: GPL-2.0
 
 //! Rust minimal sample.
