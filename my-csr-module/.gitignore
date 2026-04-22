@@ -1,0 +1,6 @@
+*
+!.gitignore
+!Kbuild
+!Makefile
+!*.rs
+!README.md
