@@ -39,3 +39,10 @@ rootfs build command:
 cd rootfs
 find . -print0 | cpio --null -o --format=newc | gzip -9 > ../initramfs.cpio.gz
 ```
+
+
+Fixing the rustup issues when on nightly:
+
+- Step into relevant module directory 
+
+- Run `rustup override set stable` to switch to stable for that directory
