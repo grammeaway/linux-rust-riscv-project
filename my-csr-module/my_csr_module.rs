@@ -4,7 +4,7 @@
 
 use kernel::prelude::*;
 use core::arch::asm; // For the `asm!` macro.
-
+use core::hint::black_box; // For preventing optimizations in the benchmark loop.
 
 module! {
     type: MyCSRModule,
@@ -55,12 +55,33 @@ impl kernel::Module for MyCSRModule {
 
         #[cfg(target_arch = "riscv64")]
         {
+            // Initial simple reads
             let time = read_time_csr();
             pr_info!("RISC-V time CSR: {}\n", time);
             let cycle = read_cycle_csr();
             pr_info!("RISC-V cycle CSR: {}\n", cycle);
             let instret = read_instret_csr();
             pr_info!("RISC-V instret CSR: {}\n", instret);
+
+            // Simple "benchmark" to show the difference in cycle and instret counts before and
+            // after a loop.
+            //let cycle_start = read_cycle_csr();
+            let t_start = read_time_csr();
+            let instret_start = read_instret_csr();
+            
+            let mut sum: u64 = 0;
+            for i in 0..10_000_000u64 {
+                sum = sum.wrapping_add(black_box(i));
+                unsafe { asm!("", options(nostack, preserves_flags)); }
+            }
+            let t_end = read_time_csr();
+            //let cycle_end = read_cycle_csr();
+            let instret_end = read_instret_csr();
+            
+            pr_info!("loop anti-DCE sum: {}\n", black_box(sum)); // Prevent the loop from being optimized away.
+            //pr_info!("cycle delta: {}\n", cycle_end - cycle_start);
+            pr_info!("time delta: {}\n", t_end - t_start);
+            pr_info!("instret delta: {}\n", instret_end - instret_start);
         }
 
         Ok(MyCSRModule {})

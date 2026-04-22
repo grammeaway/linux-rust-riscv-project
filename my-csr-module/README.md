@@ -1,2 +1,2 @@
 # Module reading RISC-V CSRs
-An only-lsightly-modified version of the rust_minimal module, which can be built and loaded without needing to rebuild the entire kernel.
+Module reading RISC-V CSRs through in-line assembly in Rust. Reads time, cycle, and instret CSRs and prints their values in the kernel logs when the module is loaded. Built as an out-of-tree module for a RISC-V Linux kernel with Rust support.
