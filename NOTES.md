@@ -186,3 +186,10 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 - Made a Makefile for it, which uses the Kbuild system to build the module against the kernel source tree
 
 - After a succesful build (had to rustup override to a stable Rust version, since I run the nightly toolchain by default), the flow was the same as before - copy the new .ko file into the rootfs, remake the initramfs, boot into the kernel in QEMU, and then load and unload the module with insmod and rmmod to see the output in the kernel logs.
+
+
+## Step 12: A module using in-line assembly to read RISC-V CSRs
+
+- Modified the system to have a top-level Makefile, which builds all the out-of-tree Rust modules, and rebuilds the initramfs, to make the build process a bit smoother
+
+- Made a simple module, using Rust's asm! macro to read some RISC-V CSRs (cycle, time, instret), and print their values in the kernel logs when the module is loaded.

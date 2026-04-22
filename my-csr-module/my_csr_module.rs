@@ -28,6 +28,24 @@ fn read_time_csr() -> u64 {
     value
 }
 
+#[cfg(target_arch = "riscv64")]
+fn read_cycle_csr() -> u64 {
+    let value: u64;
+    unsafe {
+        asm!("csrr {0}, cycle", out(reg) value);
+    }
+    value
+}
+
+#[cfg(target_arch = "riscv64")]
+fn read_instret_csr() -> u64 {
+    let value: u64;
+    unsafe {
+        asm!("csrr {0}, instret", out(reg) value);
+    }
+    value
+}
+
 
 impl kernel::Module for MyCSRModule {
     fn init(_module: &'static ThisModule) -> Result<Self> {
@@ -39,6 +57,10 @@ impl kernel::Module for MyCSRModule {
         {
             let time = read_time_csr();
             pr_info!("RISC-V time CSR: {}\n", time);
+            let cycle = read_cycle_csr();
+            pr_info!("RISC-V cycle CSR: {}\n", cycle);
+            let instret = read_instret_csr();
+            pr_info!("RISC-V instret CSR: {}\n", instret);
         }
 
         Ok(MyCSRModule {})
