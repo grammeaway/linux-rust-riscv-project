@@ -175,3 +175,14 @@ libbb/hash_md5_sha.c:1316:35: error: 'sha1_process_block64_shaNI' undeclared (fi
 ```
 
 - Noting that the drop output matched the new Vector of numbers
+
+
+## Step 11: An out-of-tree module 
+
+- Made a copy of the rust minimal module in this repoitory (in the `my-module/` directory), and then modified it to create a new module name - left everything else the same for now.
+
+- Made a Kbuild file for it, which is needed to build it as an out-of-tree module
+
+- Made a Makefile for it, which uses the Kbuild system to build the module against the kernel source tree
+
+- After a succesful build (had to rustup override to a stable Rust version, since I run the nightly toolchain by default), the flow was the same as before - copy the new .ko file into the rootfs, remake the initramfs, boot into the kernel in QEMU, and then load and unload the module with insmod and rmmod to see the output in the kernel logs.
