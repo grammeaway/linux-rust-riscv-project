@@ -2,6 +2,8 @@
 
 Working from: Arch Linux, x86_64
 
+Notes that would later on be turned into [a blog post, with more details and explanations](https://victorgram.com/blog/riscv-linux-kernel-modules-in-rust-from-scratch)
+
 ## Step 1: Cross-compilations tools 
 
 - riscv64-linux-gnu-gcc - installed through pacman (extra)

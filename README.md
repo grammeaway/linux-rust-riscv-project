@@ -1,5 +1,9 @@
 # RISC-V + Rust cross-compiled Linux kernel project 
 
+## Reference blog posts 
+
+This repository contains the rough notes, configs, and reference code for the companion blog post I wrote on how to write Linux kernel modules in Rust for RISC-V from scratch, which you can find [here](https://victorgram.com/blog/riscv-linux-kernel-modules-in-rust-from-scratch).
+
 ## WIP (and aggresively so) - not ready for use yet
 For now, this is mainly a scratch space for me to experiment with cross-compiling the Linux kernel and busybox for RISC-V, and then running it in QEMU. As I make progress, I'll update the repo and README with more instructions and details.
 
