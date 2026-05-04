@@ -9,7 +9,10 @@ use kernel::{
     new_mutex,
     prelude::*,
     sync::{aref::ARef, Mutex},
-    str::Formatter
+    str::Formatter,
+    transmute::AsBytes,
+    uaccess::UserSlice, 
+    ioctl::_IOR,
 };
 use core::arch::asm; // For the `asm!` macro.
 use core::fmt::Write;
@@ -28,6 +31,19 @@ struct RustMiscDeviceModule {
     _miscdev: MiscDeviceRegistration<RustMiscDevice>,
 }
 
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+struct RvcpuSnapshot {
+    time: u64,
+    cycle: u64,
+    instret: u64,
+}
+
+unsafe impl AsBytes for RvcpuSnapshot {}
+
+const RVCPU_IOC_SNAPSHOT: u32 = _IOR::<RvcpuSnapshot>('|' as u32, 0x80);
+
 macro_rules! read_csr { 
     ($csr:ident) => {{ 
         let value: u64;
@@ -41,6 +57,16 @@ macro_rules! read_csr {
         value
     }};
 }
+
+#[cfg(target_arch = "riscv64")]
+fn take_snapshot() -> RvcpuSnapshot {
+    RvcpuSnapshot {
+        time: read_csr!(time),
+        cycle: read_csr!(cycle),
+        instret: read_csr!(instret),
+    }
+}
+
 
 impl kernel::InPlaceModule for RustMiscDeviceModule {
     fn init(_module: &'static ThisModule) -> impl PinInit<Self, Error> {
@@ -72,31 +98,17 @@ impl MiscDevice for RustMiscDevice {
     type Ptr = Pin<KBox<Self>>;
 
     fn open(_file: &File, misc: &MiscDeviceRegistration<Self>) -> Result<Pin<KBox<Self>>> {
-        let dev = ARef::from(misc.device());
 
+        let dev = ARef::from(misc.device());
         dev_info!(dev, "Opening Rust Misc Device Sample\n");
-        
+
+
         let mut buffer = KVVec::new();
 
         #[cfg(target_arch = "riscv64")]
         {
-            let time = read_csr!(time);
-            let cycle = read_csr!(cycle);
-            let instret = read_csr!(instret);
-
-            let mut stack_buf = [0u8; 256];
-            let mut formatter = Formatter::new(&mut stack_buf);
-
-            write!(
-                &mut formatter,
-                "RISC-V CSRs - time: {}, cycle: {}, instret: {}\n",
-                time, cycle, instret
-            )
-            .map_err(|_| EINVAL)?;
-
-            let written = formatter.bytes_written();
-            buffer.extend_from_slice(&stack_buf[..written], GFP_KERNEL)?;
-
+            let snap = take_snapshot();
+            buffer.extend_from_slice(snap.as_bytes(), GFP_KERNEL)?;
         }
 
         KBox::try_pin_init(
@@ -122,6 +134,29 @@ impl MiscDevice for RustMiscDevice {
 
         Ok(read)
     }
+
+fn ioctl(me: Pin<&RustMiscDevice>, _file: &File, cmd: u32, arg: usize) -> Result<isize> {
+    dev_info!(me.dev, "IOCTL on Rust Misc Device Sample (cmd: {})\n", cmd);
+
+    match cmd {
+        RVCPU_IOC_SNAPSHOT => {
+            #[cfg(target_arch = "riscv64")]
+            {
+                let snap = take_snapshot();
+                let user_arg = UserPtr::from_addr(arg);
+                let size = core::mem::size_of::<RvcpuSnapshot>();
+                UserSlice::new(user_arg, size)
+                    .writer()
+                    .write::<RvcpuSnapshot>(&snap)?;
+            }
+            Ok(0)
+        }
+        _ => {
+            dev_err!(me.dev, "Unrecognised IOCTL command: {}\n", cmd);
+            Err(ENOTTY)
+        }
+    }
+}
 
 }
 
