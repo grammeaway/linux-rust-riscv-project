@@ -4,3 +4,7 @@ busybox
 *.cpio.gz 
 # Ignore our compiled kernel modules
 *.ko
+
+# Ignore compiled C module 
+rootfs/bin/rvcpu_client
+rvcpu_client/rvcpu_client
